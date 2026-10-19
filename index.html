@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>今天吃什么</title>
+<meta name="theme-color" content="#c2410c">
+<link rel="manifest" href="./manifest.json">
+<link rel="icon" href="./icon-192.png">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--bg:#fff7ed;--card:#fff;--acc:#ea580c;--acc2:#f59e0b;--tx:#431407;--mut:#9a3412}
+body{background:var(--bg);color:var(--tx);font-family:"PingFang SC","Microsoft YaHei",sans-serif;min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:28px 16px 60px}
+h1{font-size:2rem;margin-bottom:4px}
+.sub{color:var(--mut);font-size:.85rem;margin-bottom:22px}
+.tabs{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-bottom:22px}
+.tab{border:2px solid #fdba74;background:#fff;color:var(--mut);border-radius:999px;padding:8px 18px;font-size:.9rem;cursor:pointer;transition:.2s}
+.tab.on{background:linear-gradient(135deg,var(--acc),var(--acc2));color:#fff;border-color:transparent;font-weight:bold;box-shadow:0 4px 14px rgba(234,88,12,.35)}
+.machine{background:var(--card);border-radius:24px;box-shadow:0 10px 40px rgba(234,88,12,.12);width:min(92vw,420px);padding:34px 24px;text-align:center;border:1px solid #ffedd5}
+.slot{font-size:2.2rem;font-weight:bold;min-height:3.4rem;display:flex;align-items:center;justify-content:center;color:var(--acc);margin:6px 0 14px}
+.slot.rolling{animation:blur.12s infinite}
+@keyframes blur{0%{transform:translateY(-6px);opacity:.6}50%{transform:translateY(6px);opacity:1}100%{transform:translateY(-6px);opacity:.6}}
+.verdict{color:var(--mut);font-size:.95rem;min-height:1.6rem;margin-bottom:18px;font-style:italic}
+.btnrow{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
+button.big{background:linear-gradient(135deg,var(--acc),var(--acc2));color:#fff;border:none;border-radius:999px;padding:14px 44px;font-size:1.15rem;font-weight:bold;cursor:pointer;box-shadow:0 6px 20px rgba(234,88,12,.4);transition:.15s}
+button.big:active{transform:scale(.96)}
+button.ghost{background:#fff;border:2px solid #fdba74;color:var(--acc);border-radius:999px;padding:12px 26px;font-size:.95rem;cursor:pointer}
+button.ghost:active{transform:scale(.96)}
+.hist{margin-top:26px;font-size:.8rem;color:var(--mut);max-width:420px;text-align:center;line-height:1.9}
+footer{margin-top:auto;padding-top:30px;color:#c2a184;font-size:.75rem}
+</style>
+</head>
+<body>
+<h1>🍚 今天吃什么</h1>
+<div class="sub">干饭人终极难题 · 一键终结选择困难</div>
+<div class="tabs" id="tabs"></div>
+<div class="machine">
+<div class="slot" id="slot">点开吃，开干！</div>
+<div class="verdict" id="verdict"></div>
+<div class="btnrow">
+<button class="big" id="go">开 吃</button>
+</div>
+<div class="btnrow" style="margin-top:12px">
+<button class="ghost" id="again">换一个</button>
+<button class="ghost" id="copy">复制发群</button>
+</div>
+</div>
+<div class="hist" id="hist"></div>
+<footer>吃饱了才有力气干饭 · v1.0</footer>
+<script>
+const MENU={
+'中餐':['宫保鸡丁','鱼香肉丝','麻婆豆腐','回锅肉','水煮鱼','糖醋里脊','酸菜鱼','黄焖鸡','大盘鸡','干锅花菜','蒜蓉空心菜','红烧肉','梅菜扣肉','白切鸡','盐水鸭','剁椒鱼头','毛血旺','酸辣土豆丝','番茄炒蛋','地三鲜'],
+'快餐外卖':['黄焖鸡米饭','沙县小吃','兰州拉面','麻辣烫','螺蛳粉','酸辣粉','炸鸡汉堡','披萨','寿司','煲仔饭','盖浇饭','卤肉饭','肠粉','煎饼果子','肉夹馍','烤冷面','麻辣香锅','冒菜','过桥米线','重庆小面'],
+'减脂餐':['鸡胸肉沙拉','水煮虾仁','藜麦饭','牛油果三明治','清蒸鲈鱼','凉拌鸡丝','蔬菜卷','豆腐蔬菜汤','燕麦粥','烤鸡腿(去皮)','金枪鱼沙拉','番茄鸡蛋汤','紫薯+鸡蛋','杂粮煎饼(少油)','白灼生菜','蒸南瓜','希腊酸奶碗','三文鱼刺身','凉拌黄瓜','冬瓜排骨汤'],
+'奶茶饮品':['珍珠奶茶','杨枝甘露','芋泥波波奶茶','柠檬茶','多肉葡萄','芝士莓莓','生椰拿铁','茉莉奶绿','烤奶','葡萄柚果茶','黑糖珍珠鲜奶','抹茶拿铁','西瓜啵啵','百香果双响炮','豆乳米麻薯','桂花酒酿奶茶','厚芋泥鲜奶','蜜桃乌龙茶','巧克力奶昔','金桔柠檬茶']
+};
+const WORDS=['就它了，别纠结！','天意如此，开吃！','干饭不积极，思想有问题','这一顿，值！','听我的，错不了','缘分到了，挡都挡不住','干饭人，干饭魂','犹豫就会败北，干饭从不缺席','就决定是你了！','吃饱了才有力气减肥'];
+const CN=Object.keys(MENU);
+let cur='中餐',result='',rolling=false,hist=JSON.parse(localStorage.getItem('chisha_hist')||'[]');
+const $=id=>document.getElementById(id);
+function renderTabs(){
+$('tabs').innerHTML=CN.map(c=>`<button class="tab${c===cur?' on':''}" data-c="${c}">${c}</button>`).join('');
+document.querySelectorAll('.tab').forEach(t=>t.onclick=()=>{cur=t.dataset.c;renderTabs()});
+}
+function renderHist(){
+$('hist').innerHTML=hist.length?('最近吃过：'+hist.slice(-8).join(' · ')):'';
+}
+function pick(){
+if(rolling)return;rolling=true;
+const list=MENU[cur],slot=$('slot');
+$('verdict').textContent='';
+slot.classList.add('rolling');
+let n=0;
+const iv=setInterval(()=>{
+slot.textContent=list[Math.floor(Math.random()*list.length)];
+if(++n>14){
+clearInterval(iv);slot.classList.remove('rolling');
+result=list[Math.floor(Math.random()*list.length)];
+slot.textContent='🎉 '+result;
+$('verdict').textContent='「'+WORDS[Math.floor(Math.random()*WORDS.length)]+'」';
+hist.push(result);hist=hist.slice(-20);
+localStorage.setItem('chisha_hist',JSON.stringify(hist));renderHist();
+rolling=false;
+}
+},90);
+}
+$('go').onclick=pick;
+$('again').onclick=()=>{if(!rolling)pick()};
+$('copy').onclick=()=>{
+if(!result)return;
+const t=`${result}（${cur}）\n${$('verdict').textContent}`;
+navigator.clipboard.writeText(t).then(()=>{const b=$('copy');b.textContent='已复制 ✓';setTimeout(()=>b.textContent='复制发群',1200)});
+};
+renderTabs();renderHist();
+if('serviceWorker' in navigator)navigator.serviceWorker.register('./sw.js');
+</script>
+</body>
+</html>
